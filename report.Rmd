@@ -2,7 +2,7 @@
 title: "Impact of Transmission Type on Fuel Efficiency in MTCARS Data Set"
 author: "Allen Hammock"
 date: "June 13, 2015"
-output: html_document
+output: word_document
 ---
 <style type="text/css">
 @media print {
@@ -125,7 +125,7 @@ p1a <- ggplot(data = as.data.frame(qqnorm(fit1.resid , plot=F)),
              mapping = aes(x = x, y = y)) +
   geom_point() +
   geom_smooth(method = "lm", se = FALSE) +
-  ggtitle("lm(mpg ~ wt - 1)") +
+  ggtitle("lm(mpg ~ Trans - 1)") +
   xlab("Theretical Quantiles") +
   ylab("Standardized Residuals")
 
@@ -162,7 +162,7 @@ __Figure 2 - Fitted vs Residuals__
 dfa <- data.frame(x = fit1.yhat, y = fit1.resid)
 p2a <- ggplot(dfa, aes(x = fit1.yhat, y = fit1.resid)) +
   geom_point() +
-  ggtitle("lm(mpg ~ wt - 1)") +
+  ggtitle("lm(mpg ~ Trans - 1)") +
   xlab("Fitted Values") +
   ylab("Residuals") + 
   geom_hline(yintercept = 0) + 
