@@ -19,6 +19,8 @@ mtcars$TransType <- ifelse(mtcars$am == 1, "Auto", "Manual")
 fit1 <- lm(mpg ~ TransType - 1, mtcars)
 fit2 <- lm(mpg ~ wt + TransType - 1, mtcars)
 ```
+_To view the code for this report, check out the 
+[repository on Github](https://github.com/brainvat/RegressionModelsProject/blob/master/report.Rmd)._
 
 At __Motor Trend__, a magazine about the automobile industry, we are interested 
 in exploring the relationship between a transmission types and fuel efficiency 
