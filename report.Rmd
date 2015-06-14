@@ -1,0 +1,133 @@
+---
+title: "Impact of Transmission Type on Fuel Efficiency in MTCARS Data Set"
+author: "Allen Hammock"
+date: "June 13, 2015"
+output: html_document
+---
+```{r, echo = FALSE}
+# setup
+library(ggplot2)
+library(car)
+data(mtcars)
+
+figures.echo <- FALSE
+```
+
+# Executive Summary
+```{r, echo = FALSE}
+mtcars$TransType <- ifelse(mtcars$am == 1, "Auto", "Manual")
+fit1 <- lm(mpg ~ TransType - 1, mtcars)
+fit2 <- lm(mpg ~ wt + TransType - 1, mtcars)
+```
+
+At __Motor Trend__, a magazine about the automobile industry, we are interested 
+in exploring the relationship between a transmission types and fuel efficiency 
+measured in miles per gallon (MPG). We performed a study on `r nrow(mtcars)` 
+different models and found, as a group, that the motorcars with Automatic 
+transmissions had an overall better mean fuel efficiency of 
+`r round(fit1$coef[c("TransTypeAuto")], 1)` MPG versus vehicles with Manual 
+transmissions which had an average `r round(fit1$coef[c("TransTypeManual")], 1)` 
+MPG.  
+
+However, when we look at cars in different weight classes, we see that the 
+transmission type has a much lower influence on fuel efficiency.  The 
+coeffecients on our linear model show, that Manual and Automatic transmissions 
+have approximately the same influence on fuel efficiency (MPG) if we hold the 
+weight constant.
+
+## MPG ~ TRANSMISSION TYPE (NO INTERCEPT)
+
+From our initial fit, we can see the expected value for MPG is just the 
+coefficient, or the mean average of the fuel efficiency ratings for each 
+transmission type.
+
+```{r, echo = FALSE, message = FALSE}
+fit1$call
+round(fit1$coef, 2)
+#round(confint(fit1), 2)
+```
+
+## MPG ~ WEIGHT + TRANSMISSION TYPE (NO INTERCEPT)
+
+When we adjust for the weight of the vehicle in addition to the transmission
+type, we see the difference between Manual and Automatic diminish dramatically.
+
+```{r, echo = FALSE}
+fit2$call
+round(fit2$coef, 2)
+#round(confint(fit2), 2)
+```
+
+In our analysis below you will see that regression diagnostics support this
+conclusion.  We also examine the leverage that other factors such as the 
+number of cylinders have on the overall fuel efficiency outcome.
+
+# Regression Diagnostics
+
+## Normality of Residuals
+
+First, we check to see if the residual error in our fitted model are 
+normally distributed (__Figure 1__).  Our assumptions that the errors are
+roughly `iid` $N(0, \sigma^2)$ seem to hold.
+
+## Residual Fit
+
+
+## Leverage
+
+## Conclusions
+
+
+```{r}
+```
+
+# Appendix
+
+## Figure 1 -- Normal QQ
+
+```{r, message = FALSE, echo = figures.echo}
+fit2.resid <- residuals(fit2)
+fit2.yhat <- predict(fit2)
+p2 <- ggplot(data = as.data.frame(qqnorm(fit2.resid , plot=F)), 
+             mapping = aes(x = x, y = y)) +
+  geom_point() +
+  geom_smooth(method = "lm", se = FALSE) +
+  ggtitle("Normal Q-Q") +
+  xlab("Theretical Quantiles") +
+  ylab("Standardized Residuals")
+p2
+```
+
+## Figure 2 - Fitted vs Residuals
+
+```{r, message = FALSE, echo = figures.echo}
+df <- data.frame(x = fit2.yhat, y = fit2.resid)
+p1 <- ggplot(df, aes(x = fit2.yhat, y = fit2.resid)) +
+  geom_point() +
+  ggtitle("Residuals vs Fitted") +
+  xlab("Fitted Values") +
+  ylab("Residuals") + 
+  geom_hline(yintercept = 0) + 
+  geom_smooth()
+p1
+```
+
+## Figure 3 - Leverage
+
+```{r, message = FALSE, echo = figures.echo}
+fit2.sigma <- sqrt(deviance(fit2)/df.residual(fit2))
+fit2.rsquare <- fit2.resid/fit2.sigma 
+fit2.sqrt.rsquare <- sqrt(abs(fit2.rsquare))
+
+fit2.hii <- lm.influence(fit2, do.coef = FALSE)$hat
+df <- data.frame(x = fit2.hii, y = fit2.rsquare)
+p3 <- ggplot(df, aes(x = fit2.hii, y = fit2.rsquare)) +
+  geom_point() +
+  ggtitle("Residuals vs Leverage") +
+  xlab("Cook's Distance") +
+  ylab("Standardized Residuals") +
+  geom_hline(yintercept = 0) +
+  geom_smooth() +
+  theme(legend.position = "none")
+p3
+```
