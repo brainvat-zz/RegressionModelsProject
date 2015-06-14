@@ -4,25 +4,39 @@ author: "Allen Hammock"
 date: "June 13, 2015"
 output: html_document
 ---
-```{r, echo = FALSE}
-# setup
+<style type="text/css">
+@media print {
+  .pagebreak { 
+    page-break-before: always;
+  }
+}
+</style>
+```{r, echo = FALSE, message = FALSE, warning = FALSE}
+# libraries
+library(gridExtra)
 library(ggplot2)
+library(knitr)
 library(car)
 data(mtcars)
 
+# fitted models
+mtcars$TransType <- ifelse(mtcars$am == 1, "Auto", "Manual")
+mtcars$Cylinders <- as.factor(mtcars$cyl)
+fit1 <- lm(mpg ~ TransType - 1, mtcars)
+fit2 <- lm(mpg ~ wt + TransType - 1, mtcars)
+fit3 <- lm(mpg ~ wt + Cylinders + TransType - 1, mtcars)
+
+# supress code?
 figures.echo <- FALSE
 ```
 
 # Executive Summary
-```{r, echo = FALSE}
-mtcars$TransType <- ifelse(mtcars$am == 1, "Auto", "Manual")
-fit1 <- lm(mpg ~ TransType - 1, mtcars)
-fit2 <- lm(mpg ~ wt + TransType - 1, mtcars)
-```
-_To view the code for this report, check out the 
-[repository on Github](https://github.com/brainvat/RegressionModelsProject/blob/master/report.Rmd)._
 
-At __Motor Trend__, a magazine about the automobile industry, we are interested 
+_To view the code for this report, check out the 
+[repository on Github](https://github.com/brainvat/RegressionModelsProject/blob/master/report.Rmd)
+<a href="#ref1">[1]</a>._
+
+At _Motor Trend_, a magazine about the automobile industry, we are interested 
 in exploring the relationship between a transmission types and fuel efficiency 
 measured in miles per gallon (MPG). We performed a study on `r nrow(mtcars)` 
 different models and found, as a group, that the motorcars with Automatic 
@@ -31,105 +45,185 @@ transmissions had an overall better mean fuel efficiency of
 transmissions which had an average `r round(fit1$coef[c("TransTypeManual")], 1)` 
 MPG.  
 
-However, when we look at cars in different weight classes, we see that the 
-transmission type has a much lower influence on fuel efficiency.  The 
-coeffecients on our linear model show, that Manual and Automatic transmissions 
-have approximately the same influence on fuel efficiency (MPG) if we hold the 
-weight constant.
+However, when we look at _cars in different weight classes_ and consider
+how many cylinders each vehicle has, we see that the transmission type has a 
+much lower influence on fuel efficiency than these other factors.  As the 
+coeffecients on our linear model show, Manual and Automatic transmissions 
+have approximately the same influence (less than
+`r round(fit2$coef[c("TransTypeManual")] - fit2$coef[c("TransTypeAuto")], 2)`
+MPG difference) on fuel efficiency (MPG) if we hold the weight (wt
+coefficient) constant.
 
-## MPG ~ TRANSMISSION TYPE (NO INTERCEPT)
+This is fairly intuitive, the fact that the heavier, "gas guzzling" cars with
+bigger engines tend to have a lower MPG suggests that the efficiences of
+automatic transmissions may be negligible compared to these other parameters.
 
-From our initial fit, we can see the expected value for MPG is just the 
-coefficient, or the mean average of the fuel efficiency ratings for each 
-transmission type.
+__First Model: lm(mpg ~ TransType - 1, mtcars)__
+
+From our initial fit 
+([the code](https://github.com/brainvat/RegressionModelsProject/blob/master/report.Rmd)
+<a href="#ref1">[1]</a> is hidden to save space), the expected value for MPG is 
+just the coefficient, or the mean average of the fuel efficiency ratings for 
+each transmission type.  We have removed the intercept in all of our models.
 
 ```{r, echo = FALSE, message = FALSE}
-fit1$call
-round(fit1$coef, 2)
-#round(confint(fit1), 2)
+summary(fit1)$coefficients
 ```
 
-## MPG ~ WEIGHT + TRANSMISSION TYPE (NO INTERCEPT)
+__Second Model: lm(mpg ~ wt + TransType - 1, mtcars)__
 
-When we adjust for the weight of the vehicle in addition to the transmission
-type, we see the difference between Manual and Automatic diminish dramatically.
+Now we adjust the outcome for the influence of both weight and transmission 
+type.  Here we see the difference between Manual and Automatic diminish 
+dramatically. 
 
 ```{r, echo = FALSE}
-fit2$call
-round(fit2$coef, 2)
-#round(confint(fit2), 2)
+summary(fit2)$coefficients
 ```
 
-In our analysis below you will see that regression diagnostics support this
-conclusion.  We also examine the leverage that other factors such as the 
-number of cylinders have on the overall fuel efficiency outcome.
+The t-test is significant and our confidence intervals for Manual vs. Automatic
+transmissions are very similar. The distribution of our residuals 
+are normally distributed (__<a href="#figure1">Figure 1</a>__) for all three
+models so our assumptions that the errors are roughly iid $N(0, \sigma^2)$ seem 
+to hold.
 
-# Regression Diagnostics
-
-## Normality of Residuals
-
-First, we check to see if the residual error in our fitted model are 
-normally distributed (__Figure 1__).  Our assumptions that the errors are
-roughly `iid` $N(0, \sigma^2)$ seem to hold.
-
-## Residual Fit
-
-
-## Leverage
-
-## Conclusions
-
-
-```{r}
+```{r, echo = FALSE}
+round(confint(fit2), 2)
 ```
 
+__Third Model: lm(mpg ~ wt + Cylinders + TransType - 1, mtcars)__
+
+Finally we update the model to adjust for the total number of cylinders.  As the 
+number of cylinders increases, the MPG decreases.  We see that having a
+Manual transmission accounts for a very small part of the variance now and
+that within the confidence interval the influence could be positive or negative
+since it is so close to zero.
+
+In  __<a href="#figure2">Figure 2</a>__ we see a better dispersion of the
+residuals vs. the fitted values as we add these additional parameters suggesting
+that we have accounted for much of the systematic variance in our model.
+
+We also did some digging for outliers and we found that the __Toyota Corolla__
+and __Fiat 128__ are interesting examples to look at, as 
+__<a href="#figure3">Figure 3</a>__ suggests.  
+
+```{r, echo = FALSE}
+summary(fit3)$coefficients
+round(confint(fit3), 2)
+```
+
+<div class="pagebreak"></div>
 # Appendix
 
-## Figure 1 -- Normal QQ
+<a name="figure1" />
 
-```{r, message = FALSE, echo = figures.echo}
-fit2.resid <- residuals(fit2)
-fit2.yhat <- predict(fit2)
-p2 <- ggplot(data = as.data.frame(qqnorm(fit2.resid , plot=F)), 
+__Figure 1 -- Normal QQ__
+
+```{r, message = FALSE, warning = FALSE, echo = figures.echo, fig.width = 4, fig.height = 4}
+fit1.resid <- residuals(fit1)
+fit1.yhat <- predict(fit1)
+p1a <- ggplot(data = as.data.frame(qqnorm(fit1.resid , plot=F)), 
              mapping = aes(x = x, y = y)) +
   geom_point() +
   geom_smooth(method = "lm", se = FALSE) +
-  ggtitle("Normal Q-Q") +
+  ggtitle("lm(mpg ~ wt - 1)") +
   xlab("Theretical Quantiles") +
   ylab("Standardized Residuals")
-p2
+
+fit2.resid <- residuals(fit2)
+fit2.yhat <- predict(fit2)
+p1b <- ggplot(data = as.data.frame(qqnorm(fit2.resid , plot=F)), 
+             mapping = aes(x = x, y = y)) +
+  geom_point() +
+  geom_smooth(method = "lm", se = FALSE) +
+  ggtitle("lm(mpg ~ wt + Trans - 1)") +
+  xlab("Theretical Quantiles") +
+  ylab("Standardized Residuals")
+
+fit3.resid <- residuals(fit3)
+fit3.yhat <- predict(fit3)
+p1c <- ggplot(data = as.data.frame(qqnorm(fit3.resid , plot=F)), 
+             mapping = aes(x = x, y = y)) +
+  geom_point() +
+  geom_smooth(method = "lm", se = FALSE) +
+  ggtitle("lm(mpg ~ wt + Cyl + Trans - 1)") +
+  xlab("Theretical Quantiles") +
+  ylab("Standardized Residuals")
+
+p1a
+p1b
+p1c
 ```
 
-## Figure 2 - Fitted vs Residuals
+<a name="figure2" />
 
-```{r, message = FALSE, echo = figures.echo}
-df <- data.frame(x = fit2.yhat, y = fit2.resid)
-p1 <- ggplot(df, aes(x = fit2.yhat, y = fit2.resid)) +
+__Figure 2 - Fitted vs Residuals__
+
+```{r, message = FALSE, warning = FALSE, echo = figures.echo, fig.width = 4, fig.height = 4}
+dfa <- data.frame(x = fit1.yhat, y = fit1.resid)
+p2a <- ggplot(dfa, aes(x = fit1.yhat, y = fit1.resid)) +
   geom_point() +
-  ggtitle("Residuals vs Fitted") +
+  ggtitle("lm(mpg ~ wt - 1)") +
   xlab("Fitted Values") +
   ylab("Residuals") + 
   geom_hline(yintercept = 0) + 
   geom_smooth()
-p1
+
+dfb <- data.frame(x = fit2.yhat, y = fit2.resid)
+p2b <- ggplot(dfb, aes(x = fit2.yhat, y = fit2.resid)) +
+  geom_point() +
+  ggtitle("lm(mpg ~ wt + Trans - 1)") +
+  xlab("Fitted Values") +
+  ylab("Residuals") + 
+  geom_hline(yintercept = 0) + 
+  geom_smooth()
+
+dfc <- data.frame(x = fit3.yhat, y = fit3.resid)
+p2c <- ggplot(dfc, aes(x = fit3.yhat, y = fit3.resid)) +
+  geom_point() +
+  ggtitle("lm(mpg ~ wt + Cyl + Trans - 1)") +
+  xlab("Fitted Values") +
+  ylab("Residuals") + 
+  geom_hline(yintercept = 0) + 
+  geom_smooth()
+
+p2a
+p2b
+p2c
 ```
 
-## Figure 3 - Leverage
+<a name="figure3" />
 
-```{r, message = FALSE, echo = figures.echo}
-fit2.sigma <- sqrt(deviance(fit2)/df.residual(fit2))
-fit2.rsquare <- fit2.resid/fit2.sigma 
-fit2.sqrt.rsquare <- sqrt(abs(fit2.rsquare))
+__Figure 3 - Outliers__
 
-fit2.hii <- lm.influence(fit2, do.coef = FALSE)$hat
-df <- data.frame(x = fit2.hii, y = fit2.rsquare)
-p3 <- ggplot(df, aes(x = fit2.hii, y = fit2.rsquare)) +
-  geom_point() +
-  ggtitle("Residuals vs Leverage") +
-  xlab("Cook's Distance") +
-  ylab("Standardized Residuals") +
-  geom_hline(yintercept = 0) +
-  geom_smooth() +
-  theme(legend.position = "none")
-p3
+```{r, message = FALSE, warning = FALSE, echo = figures.echo, fig.width = 8, fig.height = 4}
+# look for outliers
+fit1.ot <- outlierTest(fit1)
+fit2.ot <- outlierTest(fit2)
+fit3.ot <- outlierTest(fit3)
+
+# pull out the vehicles we found
+cars.ot <- unique(sapply(seq(1,3), function(x) names(get(paste0("fit", x, ".ot"))$rstudent)))
+
+# examine predictions for each model on the outliers
+mtcars[cars.ot, c("mpg", "wt", "Cylinders", "TransType")]
+ot.predictions <- sapply(seq(1, 3), 
+                           function(x) {
+                             predict(get(paste0("fit", x)), 
+                                     mtcars[cars.ot, c("mpg", "wt", "Cylinders", "TransType")])})
+cars.observed <- mtcars[cars.ot, c("mpg")]
+ot.pct <- matrix(paste0(round(100*(ot.predictions - cars.observed)/cars.observed, 2), "%"), nrow = 2)
+rownames(ot.pct) <- cars.ot
+colnames(ot.pct) <- c("mpg ~ Trans", "mpg ~ Trans", "mpg ~ Cyl + Trans")
+kable(ot.pct)
+```
+
+__References__
+
+<a name="ref1" />
+&lt;1&gt; https://github.com/brainvat/RegressionModelsProject/blob/master/report.Rmd
+<a name="ref2" />
+
+```{r, echo = FALSE, warning = FALSE, message = FALSE}
+# inspect results later
+save.image("report.RData")
 ```
